@@ -47,6 +47,13 @@ class RoundRobinLdap:
         except:
             pass
 
+    def is_master(self):
+        """
+        Returns whether the current server is a master node.
+        :returns: A boolean telling if the server is master
+        """
+        return self.ip.is_master
+
     def do(self, action, *args, **kwargs):
         """
         Execute an action on the LDAP server
@@ -60,7 +67,7 @@ class RoundRobinLdap:
                     return getattr(self.ldap, action)(*args, **kwargs) # Try to contact the LDAP
                 except LDAPStrongerAuthRequiredResult:
                     logging.error('[RRLDAP][do] {} is readonly'.format(self.ip.address))
-                    if self.ip.is_master:
+                    if self.is_master():
                         logging.error('[RRLDAP][do] Master {} is readonly'.format(self.ip.address))
                         raise ReadOnlyException()
                     else:

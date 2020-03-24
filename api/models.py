@@ -55,5 +55,6 @@ class Machine:
 
     def update_last_date(self):
         """Update the last authentication time in the LDAP"""
-        self.ldap.update('macAddress={},{}'.format(self.mac_address, MACHINE_DN), 'lastDate',
-                         datetime.now())
+        if self.ldap.is_master():
+            self.ldap.update('macAddress={},{}'.format(self.mac_address, MACHINE_DN), 'lastDate',
+                             datetime.now())
