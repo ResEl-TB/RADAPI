@@ -1,33 +1,46 @@
-from flask import Flask, request, jsonify
+"""This module implements the HTTP API endpoint"""
+
+import logging
 from urllib import parse
 from datetime import datetime
-from auth import Auth
-from autoldap import RoundRobinLdap
-from constants import VLANS, BUILDING_MASK, LOG_LINE, MAC_REGEX, WIFI_VLAN
-from ip import mask_match, mask_extract
-from messages import Messages
-from models import User, Machine
-import logging
+from flask import Flask, request, jsonify
+from .auth import Auth
+from .autoldap import RoundRobinLdap
+from .constants import VLANS, BUILDING_MASK, LOG_LINE, MAC_REGEX, WIFI_VLAN
+from .ip import mask_match, mask_extract
 
 
 app = Flask(__name__)
-logging.basicConfig(filename='/var/log/radapi.log', level=logging.DEBUG, format='%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s')
+logging.basicConfig(filename='/var/log/radapi.log', level=logging.DEBUG,
+                    format='%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s')
 ldap = RoundRobinLdap()
 
 
 def log(ip, port, mac, uid, owner, message, auth):
+    """
+    Save the authentication result.
+    :param ip: The NAS IP
+    :param ip: The NAS physical port
+    :param mac: The client MAC
+    :param uid: The client UID
+    :param owner: The machine owner
+    :param message: The authentication message
+    :param auth: The authentication type
+    """
     with open("/var/nsa/radius.authentication", "a") as logfile:
-        logfile.write(LOG_LINE.format(int(datetime.now().timestamp() * 1000000), ip, parse.quote(port, safe=''), mac, parse.quote(uid, safe=''), owner, message.name, auth))
+        logfile.write(LOG_LINE.format(int(datetime.now().timestamp() * 1000000), ip,
+                                      parse.quote(port, safe=''), mac, parse.quote(uid, safe=''),
+                                      owner, message.name, auth))
 
 
-@app.route('/check', methods = ['GET'])
+@app.route('/check', methods=['GET'])
 def check():
+    """This only route is the endpoint to authenticate the user or device"""
     ip = request.args.get('switch_ip')
     port = request.args.get('switch_port')
     mac = ''.join(request.args.get('client_mac').split('-')).lower()
     user_name = request.args.get('uid').split('@')[0].lower().strip()
 
-    data = {'ip': ip, 'port': port, 'mac': mac, 'uid': user_name, 'real_uid': 'UNKNOWN'}
     if mask_match(ip, *VLANS['sw']):
         vlan = mask_extract(ip, BUILDING_MASK) + 1390
     else:
@@ -51,6 +64,7 @@ def check():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='/var/log/radapi.log', level=logging.DEBUG, format='%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s')
+    logging.basicConfig(filename='/var/log/radapi.log', level=logging.DEBUG,
+                        format='%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s')
     ldap = RoundRobinLdap()
     app.run(host='0.0.0.0', port=4000)
