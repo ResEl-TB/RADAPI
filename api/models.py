@@ -12,11 +12,12 @@ class User:
     :param nt_password: The user's NT password
     :param end_internet: The user access expiration
     """
-    def __init__(self, name, password, nt_password, end_internet):
+    def __init__(self, name, password, nt_password, end_internet, room_name):
         self.name = name
         self.password = password
         self.nt_password = nt_password
         self.end_internet = end_internet
+        self.room_name = room_name
 
     def has_paid(self):
         """
@@ -42,14 +43,14 @@ class Machine:
     def is_mac_auth(self):
         """
         Return whether the machine should be authenticated with its MAC
-        :return: A boolean telling if the machine should use MAC auth
+        :returns: A boolean telling if the machine should use MAC auth
         """
         return self.auth_type == 'MAC'
 
     def is_802_1x_auth(self):
         """
         Return whether the machine should be authenticated using 802.1x
-        :return: A boolean telling if the machine should use 802.1x auth
+        :returns: A boolean telling if the machine should use 802.1x auth
         """
         return self.auth_type == '802.1X'
 

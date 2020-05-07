@@ -77,7 +77,7 @@ class Auth:
     """This static class implements the authentication mechanisms"""
 
     @staticmethod
-    def mac(ldap, ip, port, mac, user_name, vlan):
+    def mac(ldap, mac, user_name):
         """
         Perform a MAC authentication.
         :param ldap: The ldap to connect to
@@ -85,26 +85,22 @@ class Auth:
         :param port: The physical port of the NAS
         :param mac: The client's MAC address
         :param user_name: The user name passed by the NAS. It should be the same as the MAC address
-        :param vlan: The VLAN to which the client should be redirected
         """
-        return_vlan = None
         if user_name == mac:
             try:
                 machine = Machine(ldap, **ldap.get_machine(mac))
-                real_user = machine.user
                 if machine.is_mac_auth():
-                    if real_user.has_paid():
+                    if machine.user.has_paid():
                         logging.info('[AUTH][mac] MAC Auth ({}) done'.format(user_name))
-                        return Result('MAC', Messages.AUTH_OK, machine, vlan)
-                    else:
-                        logging.warning('[AUTH][mac] MAC Auth ({}) done, but subscription ended'
-                                        .format(user_name))
-                        return Result('MAC', Messages.SUBSCRIPTION_ENDED, machine,
-                                      SUBSCRIPTION_VLAN)
-                else:
-                    logging.warning('[AUTH][mac] MAC Auth ({}) failed: wrong auth type for {}'
-                                    .format(user_name, mac))
-                    return Result('MAC', Messages.WRONG_AUTH_TYPE, machine)
+                        return Result('MAC', Messages.AUTH_OK, machine,
+                                      ldap.get_vlan(machine.user.room_name))
+                    logging.warning('[AUTH][mac] MAC Auth ({}) done, but subscription ended'
+                                    .format(user_name))
+                    return Result('MAC', Messages.SUBSCRIPTION_ENDED, machine,
+                                  SUBSCRIPTION_VLAN)
+                logging.warning('[AUTH][mac] MAC Auth ({}) failed: wrong auth type for {}'
+                                .format(user_name, mac))
+                return Result('MAC', Messages.WRONG_AUTH_TYPE, machine)
             except UserNotFoundException:
                 logging.warning('[AUTH][mac] MAC Auth ({}) failed: unknown user'.format(user_name))
                 return Result('MAC', Messages.UNKNOWN_USER)
@@ -121,7 +117,7 @@ class Auth:
             return Result('MAC', Messages.INCONSISTENT_MAC)
 
     @staticmethod
-    def dot1x(ldap, ip, port, mac, user_name, vlan, again=False):
+    def dot1x(ldap, mac, user_name, again=False):
         """
         Perform an 802.1x authentication.
         :param ldap: The ldap to connect to
@@ -129,7 +125,6 @@ class Auth:
         :param port: The physical port of the NAS
         :param mac: The client's MAC address
         :param user_name: The user name
-        :param vlan: The VLAN to which the client should be redirected
         :param again: If the authentication is attempted again
         """
         try:
@@ -139,20 +134,18 @@ class Auth:
                 if machine.is_802_1x_auth():
                     if user.has_paid():
                         logging.info('[AUTH][dot1x] 802.1X Auth ({}) done'.format(user_name))
-                        return Result('802.1X', Messages.AUTH_OK, machine, vlan)
-                    else:
-                        logging.warning(('[AUTH][dot1x] 802.1X Auth ({}) done, but subscription '
-                                         'ended').format(user_name))
-                        return Result('802.1X', Messages.SUBSCRIPTION_ENDED, machine,
-                                      SUBSCRIPTION_VLAN)
-                else:
-                    logging.warning('[AUTH][dot1x] 802.1X Auth ({}) failed: wrong auth type for {}'
-                                    .format(user_name, mac))
-                    return Result('802.1X', Messages.WRONG_AUTH_TYPE, machine)
-            else:
-                logging.warning(('[AUTH][dot1x] 802.1X Auth ({}) failed: wrong device owner for {} '
-                                 '- owner is {}').format(user_name, mac, machine.user.name))
-                return Result('802.1X', Messages.WRONG_MACHINE_OWNER, machine)
+                        return Result('802.1X', Messages.AUTH_OK, machine,
+                                      ldap.get_vlan(machine.user.room_name))
+                    logging.warning(('[AUTH][dot1x] 802.1X Auth ({}) done, but subscription '
+                                     'ended').format(user_name))
+                    return Result('802.1X', Messages.SUBSCRIPTION_ENDED, machine,
+                                  SUBSCRIPTION_VLAN)
+                logging.warning('[AUTH][dot1x] 802.1X Auth ({}) failed: wrong auth type for {}'
+                                .format(user_name, mac))
+                return Result('802.1X', Messages.WRONG_AUTH_TYPE, machine)
+            logging.warning(('[AUTH][dot1x] 802.1X Auth ({}) failed: wrong device owner for {} '
+                             '- owner is {}').format(user_name, mac, machine.user.name))
+            return Result('802.1X', Messages.WRONG_MACHINE_OWNER, machine)
         except UserNotFoundException:
             logging.warning('[AUTH][dot1x] 802.1X Auth ({}) failed: unknown user'.format(user_name))
             return Result('802.1X', Messages.UNKNOWN_USER)
@@ -161,17 +154,16 @@ class Auth:
                 logging.warning(('[AUTH][dot1x] 802.1X Auth ({}) failed: unregistered device {} - '
                                  'LDAP Error?').format(user_name, mac))
                 return Result('802.1X', Messages.UNREGISTERED_DEVICE)
-            else:
-                logging.debug('[AUTH][dot1x] 802.1X Auth ({}) deferred: unregistered device {}'
-                              .format(user_name, mac))
-                try:
-                    ldap.add_machine(mac, user)
-                    return Auth.dot1x(ldap, ip, port, mac, user_name, vlan, True)
-                except ReadOnlyException:
-                    logging.error('[AUTH][dot1x] 802.1X Auth ({}) failed: readonly LDAP'
-                                  .format(user_name))
-                    return Result('802.1X', Messages.LDAP_ERROR)
+            logging.debug('[AUTH][dot1x] 802.1X Auth ({}) deferred: unregistered device {}'
+                          .format(user_name, mac))
+            try:
+                ldap.add_machine(mac, user)
+                return Auth.dot1x(ldap, mac, user_name, True)
+            except ReadOnlyException:
+                logging.error('[AUTH][dot1x] 802.1X Auth ({}) failed: readonly LDAP'
+                              .format(user_name))
+                return Result('802.1X', Messages.LDAP_ERROR)
         except NoMoreIPException:
-            logging.critical('[AUTH][dot1x] 802.1X Auth ({}) failed: readonly LDAP'
+            logging.critical('[AUTH][dot1x] 802.1X Auth ({}) failed: all nodes DOWN'
                              .format(user_name))
             return Result('802.1X', Messages.LDAP_ERROR)

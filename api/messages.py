@@ -19,4 +19,5 @@ class Messages(Enum):
         Return a text message for the current value.
         :return: The authentication result description
         """
+        #pylint: disable=E1126
         return MESSAGES[self.value]

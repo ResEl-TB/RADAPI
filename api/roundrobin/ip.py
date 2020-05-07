@@ -2,15 +2,16 @@
 
 from datetime import datetime
 from functools import reduce
-from .constants import MASTER_LDAP, SLAVE_LDAPS
 from .exceptions import NoMoreIPException
 
 class RoundRobinIP:
     """
     This class implements a round-robin IP pool
     """
-    def __init__(self):
-        self.default_address = MASTER_LDAP
+    def __init__(self, master, slaves):
+        self.is_master = self.attempts = self.address = self.index = None
+        self.default_address = master
+        self.slaves = slaves
         self.last_crash = datetime.now()
         self.reset(init=True)
         self.next_index = 0
@@ -20,7 +21,7 @@ class RoundRobinIP:
         Get the next available IP.
         :returns: The next IP
         """
-        n_slaves = len(SLAVE_LDAPS)
+        n_slaves = len(self.slaves)
         if self.is_master:
             self.last_crash = datetime.now()
         if self.attempts >= n_slaves:
@@ -33,7 +34,7 @@ class RoundRobinIP:
             self.index = self.next_index
             self.next_index = (self.index + 1) % n_slaves
             self.is_master = False
-        self.address = SLAVE_LDAPS[self.index] if not self.is_master else self.default_address
+        self.address = self.slaves[self.index] if not self.is_master else self.default_address
         self.attempts += 1
         return self.address
 

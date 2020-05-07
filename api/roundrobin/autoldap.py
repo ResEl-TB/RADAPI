@@ -1,18 +1,18 @@
-"""This module defines the tools used by the API to communicate with the LDAP"""
+"""This module defines the tools to communicate with the LDAP"""
 
 import logging
 from ldap3 import Server, Connection, MODIFY_REPLACE
 from ldap3.core.exceptions import LDAPStrongerAuthRequiredResult
-from .constants import LDAP_USER, LDAP_PASSWORD, UREG, PEOPLE_DN, MACHINE_DN
-from .exceptions import (NoMoreIPException, UserNotFoundException, MachineNotFoundException,
-                         ReadOnlyException)
+from .exceptions import NoMoreIPException, ReadOnlyException
 from .ip import RoundRobinIP
 
 
 class RoundRobinLdap:
     """This class implements a round-robin LDAP client"""
-    def __init__(self):
-        self.ip = RoundRobinIP()
+    def __init__(self, user, password, master, slaves=[]):
+        self.user = user
+        self.password = password
+        self.ip = RoundRobinIP(master, slaves)
         logging.info('[RRLDAP][__init__] Initializing...')
         self.connect(self.ip.get())
         logging.info('[RRLDAP][__init__] Initialized for host {}'.format(self.ip.address))
@@ -25,8 +25,8 @@ class RoundRobinLdap:
         """
         try:
             logging.info('[RRLDAP][connect] Connecting to {}'.format(address))
-            ldap = Connection(Server(address, use_ssl=True, connect_timeout=5), user=LDAP_USER,
-                              password=LDAP_PASSWORD, auto_bind=True, return_empty_attributes=True)
+            ldap = Connection(Server(address, use_ssl=True, connect_timeout=5), user=self.user,
+                              password=self.password, auto_bind=True, return_empty_attributes=True)
             try:
                 self.disconnect()
             except:
@@ -70,11 +70,11 @@ class RoundRobinLdap:
                     if self.is_master():
                         logging.error('[RRLDAP][do] Master {} is readonly'.format(self.ip.address))
                         raise ReadOnlyException()
-                    else:
-                        logging.error('[RRLDAP][do] Node {} is readonly'.format(self.ip.address))
+                    logging.error('[RRLDAP][do] Node {} is readonly'.format(self.ip.address))
                 except Exception as e: # If the current node is down,
                     logging.error('[RRLDAP][do] Connection to {} failed. Reason:\n             {}'
                                   .format(self.ip.address, e))
+                #pylint: disable=E1102
                 while not self.connect(self.ip.next()): # Find the next available node
                     logging.error('[RRLDAP][do] Connection to {} failed'.format(self.ip.address))
         except NoMoreIPException: # If no node is up,
@@ -102,50 +102,9 @@ class RoundRobinLdap:
         except ReadOnlyException:
             raise
 
-    def get_user(self, user):
-        """
-        Get a user from the LDAP server.
-        :param user: The UID of the user to get
-        """
-        if not UREG.match(user) or not self.search('(uid={})'.format(user), PEOPLE_DN,
-                                                   ['uid', 'ntPassword', 'userPassword',
-                                                    'endInternet']):
-            raise UserNotFoundException()
-        result = self.get_result()
-        return {'name': result.uid.value,
-                'password': result.userPassword.value.decode('ascii'),
-                'nt_password': result.ntPassword.value,
-                'end_internet': result.endInternet.value
-               }
-
-    def get_machine(self, mac):
-        """
-        Get a user machine from the LDAP server.
-        :param mac: The MAC address of the machine to get
-        """
-        if not self.search('(&(objectclass=reselDevice)(macAddress={}))'.format(mac), MACHINE_DN,
-                           ['macAddress', 'authType', 'uidProprio']):
-            raise MachineNotFoundException()
-        result = self.get_result()
-        return {'uid': result.uidProprio.value.split(',')[0].split('=')[1],
-                'mac_address': result.macAddress.value,
-                'auth_type': result.authType.value
-               }
-
     def get_result(self):
         """
         Returns the previous query results.
         :returns: The query results
         """
         return self.ldap.entries[0]
-
-    def add_machine(self, mac, user):
-        """
-        Add a machine to the LDAP.
-        :param mac: The MAC address
-        :param user: The owner
-        """
-        logging.info('[AUTH][add_machine] Adding machine {} for user {}'.format(mac, user.name))
-        return self.do('add', 'macAddress={},{}'.format(mac, MACHINE_DN), 'reselDevice',
-                       {'authType': '802.1X', 'uidProprio': 'uid={},{}'.format(user.name,
-                                                                               PEOPLE_DN)})
