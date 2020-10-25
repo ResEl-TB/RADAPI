@@ -26,7 +26,8 @@ class RoundRobinLdap:
         try:
             logging.info('[RRLDAP][connect] Connecting to {}'.format(address))
             ldap = Connection(Server(address, use_ssl=True, connect_timeout=5), user=self.user,
-                              password=self.password, auto_bind=True, return_empty_attributes=True)
+                              password=self.password, auto_bind=True, return_empty_attributes=True,
+                              raise_exceptions=True)
             try:
                 self.disconnect()
             except:

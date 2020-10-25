@@ -6,6 +6,7 @@ from urllib import parse
 from datetime import datetime
 from flask import Flask, request, jsonify
 from redis import StrictRedis
+from redis.exceptions import ConnectionError as RedisConnectionError
 from .auth import Auth
 from .ldap import Ldap
 from .constants import (LOG_LINE, MAC_REGEX, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, LDAP_USER,
@@ -57,8 +58,12 @@ def check():
         except ValueError:
             stripped_port = port
         logging.debug('Redirected to VLAN {}'.format(result.vlan))
-        redis_client.rpush('queue:tasks', json.dumps({'task': 'create', 'nas': ip,
-                                                      'port': stripped_port, 'vlan': result.vlan}))
+        try:
+            redis_client.rpush('queue:tasks', json.dumps({'task': 'create', 'nas': ip,
+                                                          'port': stripped_port,
+                                                          'vlan': result.vlan}))
+        except RedisConnectionError:
+            logging.error('[MAIN][check] Tarkin backend unreachable')
         try:
             result.machine.update_last_date()
         except:
