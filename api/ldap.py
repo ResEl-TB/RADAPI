@@ -59,7 +59,7 @@ class Ldap(RoundRobinLdap):
         :param room_name: The room to consider
         :return: The VLAN or a default VLAN if the room is not found
         """
-        if not room_name.startswith('I3-'): # Deployment phase 2
+        if not room_name.startswith('I'): # Deployment phase 3
             return 1451
         if not self.search('(&(objectclass=reselVLAN)(roomName={}))'.format(room_name), VLANS_DN,
                            ['vlanOffset', 'zoneID']):
