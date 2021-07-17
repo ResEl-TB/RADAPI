@@ -18,15 +18,15 @@ VLANS_DN = 'ou=vlans,dc=resel,dc=enst-bretagne,dc=fr'
 ZONES_DN = 'ou=zones,dc=resel,dc=enst-bretagne,dc=fr'
 UREG = re.compile(r'^[a-zA-Z0-9_-]+$')
 MAC_REGEX = re.compile('^[0-9a-f]{12}$')
-MESSAGES = ['Auth OK', 'Subscription ended', 'Unknown user', 'Wrong auth type',
-            'Unregistered device', 'Inconsistent MAC', 'Wrong machine owner', 'LDAP error']
+AUTHORIZATION_MESSAGES = ['OK', 'Subscription ended', 'Unknown user', 'Wrong auth type',
+                          'Unregistered machine', 'Inconsistent MAC', 'Wrong user', 'LDAP error']
+POSTAUTH_MESSAGES = ['OK', 'LDAP error']
 
 DEFAULT_VLAN = 2000
 SUBSCRIPTION_VLAN = 1311
 
-LOG_LINE = ('{}// radius.authentication'
-            '{{ip={},port={},mac={},uid={},real_uid={},status={},auth={}}} 1\n')
-
-REDIS_HOST = '127.0.0.1'
-REDIS_PORT = 6379
-REDIS_PASSWORD = None
+AUTHORIZATION_LINE = ('{}// radius.authorization'
+                      '{{ip={},port={},mac={},uid={},owner={},status={},auth={}}} 1\n')
+AUTHORIZATION_LOG_FILE = '/tmp/authorization'
+POSTAUTH_LINE = '{}// radius.postauth{{ip={},port={},mac={},uid={},owner={},status={}}} 1\n'
+POSTAUTH_LOG_FILE = '/tmp/post-auth'
