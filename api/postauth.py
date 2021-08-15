@@ -73,7 +73,7 @@ def log(ip, port, mac, uid, result):
     """
     Save the post-auth result.
     :param ip: The NAS IP
-    :param ip: The NAS physical port
+    :param port: The NAS physical port
     :param mac: The client MAC
     :param uid: The client UID
     :param result: The post-auth result

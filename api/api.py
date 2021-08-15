@@ -2,8 +2,7 @@
 
 import logging
 from flask import Flask, request, jsonify
-from . import authorization
-from . import postauth
+from . import authorization, postauth, accounting
 from .ldap import Ldap
 from .constants import (MAC_REGEX, LDAP_USER, LDAP_PASSWORD, MASTER_LDAP, SLAVE_LDAPS)
 
@@ -59,3 +58,28 @@ def post():
         code = 503
 
     return jsonify(None), code
+
+@app.route('/log', methods=['POST'])
+def log():
+    """This route is the endpoint to log sessions"""
+    status = request.form.get('status').lower()
+    user_name = request.form.get('uid').split('@')[0].lower().strip()
+    ip = request.form.get('ip')
+    mac = ''.join(request.form.get('mac').split('-')).lower()
+    timestamp = int(request.form.get('timestamp'))
+    session = request.form.get('session')
+    if status == 'start':
+        accounting.start(user_name, ip, mac, timestamp, session)
+        return jsonify(None), 204
+    in_packets = int(request.form.get('in-packets'))
+    out_packets = int(request.form.get('out-packets'))
+    in_octets = int(request.form.get('in-over')) * 2**32 + int(request.form.get('in-octets'))
+    out_octets = int(request.form.get('out-over')) * 2**32 + int(request.form.get('out-octets'))
+    if status == 'interim-update':
+        accounting.update(user_name, ip, mac, timestamp, session, in_packets, out_packets,
+                          in_octets, out_octets)
+        return jsonify(None), 204
+    reason = request.form.get('reason')
+    accounting.stop(user_name, ip, mac, timestamp, session, in_packets, out_packets, in_octets,
+                    out_octets, reason)
+    return jsonify(None), 204
