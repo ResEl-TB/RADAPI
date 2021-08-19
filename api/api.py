@@ -68,6 +68,8 @@ def log():
     mac = ''.join(request.form.get('mac').split('-')).lower()
     timestamp = int(request.form.get('timestamp'))
     session = request.form.get('session')
+    if status not in ['start', 'interim-update', 'stop']:
+        return jsonify(None), 204
     if status == 'start':
         accounting.start(user_name, ip, mac, timestamp, session)
         return jsonify(None), 204
