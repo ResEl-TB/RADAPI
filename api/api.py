@@ -25,7 +25,7 @@ def authorize():
         logging.debug('MAC Authorization for {}'.format(mac))
         result = authorization.with_mac(ldap, mac, user_name)
     else:
-        logging.debug('802.1x Auth for {}*{}'.format(user_name, mac))
+        logging.debug('802.1x Authorization for {}*{}'.format(user_name, mac))
         result = authorization.with_dot1x(ldap, mac, user_name)
 
     authorization.log(ip, port, mac, user_name, result)
@@ -47,8 +47,12 @@ def post():
     mac = ''.join(request.form.get('mac').split('-')).lower()
     user_name = request.form.get('uid').split('@')[0].lower().strip()
 
-    logging.debug('Post-auth for {}*{}'.format(user_name, mac))
-    result = postauth.process(ldap, mac, user_name)
+    if MAC_REGEX.match(user_name):
+        logging.debug('MAC Post-auth for {}'.format(mac))
+        result = postauth.with_mac(ldap, mac, user_name)
+    else:
+        logging.debug('802.1x Post-auth for {}*{}'.format(user_name, mac))
+        result = postauth.with_dot1x(ldap, mac, user_name)
 
     postauth.log(ip, port, mac, user_name, result)
 

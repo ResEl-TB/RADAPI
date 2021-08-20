@@ -12,10 +12,12 @@ from .messages import PostAuthMessage as Message
 class Result:
     """
     This class represents a post-auth result.
+    :param auth: The auth type
     :param message: The result message
     :param machine: The client machine object
     """
-    def __init__(self, message, machine=None):
+    def __init__(self, auth, message, machine=None):
+        self.auth = auth
         self.message = message
         self.machine = machine
 
@@ -37,9 +39,33 @@ class Result:
         return self.message.value == 0
 
 
-def process(ldap, mac, user_name):
+def with_mac(ldap, mac, user_name):
     """
-    Do the required processing.
+    Do a MAC post-auth.
+    :param ldap: The ldap to connect to
+    :param mac: The client's MAC address
+    :param user_name: The user name passed by the NAS (should be the same as the MAC address)
+    """
+    if user_name != mac:
+        logging.warning('[POSTAUTH][with_mac] ({}) failed: inconsistent MAC'.format(mac))
+        return Result('MAC', Message.INCONSISTENT_MAC)
+
+    try:
+        machine_data = ldap.get_machine(mac)
+    except MachineNotFoundException:
+        logging.error('[POSTAUTH][with_mac] ({}) failed: unregistered device'.format(mac))
+        return Result('MAC', Message.UNREGISTERED_MACHINE)
+    machine = Machine(ldap, **machine_data)
+    try:
+        machine.update_last_date()
+    except:
+        pass
+    return Result('MAC', Message.OK, machine)
+
+
+def with_dot1x(ldap, mac, user_name):
+    """
+    Do a post-auth using 802.1X data.
     :param ldap: The ldap to connect to
     :param mac: The client's MAC address
     :param user_name: The user name passed by the NAS
@@ -54,19 +80,19 @@ def process(ldap, mac, user_name):
                 ldap.add_machine(mac, user)
                 machine_data = ldap.get_machine(mac)
             except ReadOnlyException:
-                logging.error('[POSTAUTH][process] ({}*{}) failed: readonly LDAP'
+                logging.error('[POSTAUTH][with_dot1x] ({}*{}) failed: readonly LDAP'
                               .format(user_name, mac))
-                return Result(Message.LDAP_ERROR)
+                return Result('802.1X', Message.LDAP_ERROR)
         machine = Machine(ldap, **machine_data)
         try:
-            result.machine.update_last_date()
+            machine.update_last_date()
         except:
             pass
-        return Result(Message.OK, machine)
+        return Result('802.1X', Message.OK, machine)
     except NoMoreIPException:
-        logging.critical('[POSTAUTH][process] ({}*{}) failed: all nodes DOWN'
+        logging.critical('[POSTAUTH][with_dot1x] ({}*{}) failed: all nodes DOWN'
                          .format(user_name, mac))
-        return Result(Message.LDAP_ERROR)
+        return Result('802.1X', Message.LDAP_ERROR)
 
 
 def log(ip, port, mac, uid, result):
@@ -82,4 +108,5 @@ def log(ip, port, mac, uid, result):
         logfile.write(POSTAUTH_LINE.format(int(datetime.now().timestamp() * 1000000), ip,
                                            parse.quote(port, safe=''), mac,
                                            parse.quote(uid, safe=''),
-                                           result.get_machine_owner(), result.message.name))
+                                           result.get_machine_owner(), result.message.name,
+                                           result.auth))

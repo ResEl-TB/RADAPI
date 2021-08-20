@@ -27,7 +27,9 @@ class AuthorizationMessage(Enum):
 class PostAuthMessage(Enum):
     """This enum defines all the possible outcomes of a post-auth"""
     OK = 0
-    LDAP_ERROR = 1
+    UNREGISTERED_MACHINE = 1
+    INCONSISTENT_MAC = 2
+    LDAP_ERROR = 3
 
     def message(self):
         """

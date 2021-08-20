@@ -80,36 +80,35 @@ def with_mac(ldap, mac, user_name):
     :param mac: The client's MAC address
     :param user_name: The user name passed by the NAS (should be the same as the MAC address)
     """
-    if user_name == mac:
-        try:
-            machine_data = ldap.get_machine(mac)
-            owner = machine_data['uid']
-            machine = Machine(ldap, **machine_data)
-            if machine.is_mac_auth():
-                if machine.user.has_paid():
-                    logging.info('[AUTHORIZATION][with_mac] ({}*{}) done'.format(owner, mac))
-                    return Result('MAC', Message.OK, machine,
-                                  vlan=ldap.get_vlan(machine.user.room_name))
-                logging.warning('[AUTHORIZATION][with_mac] ({}*{}) done, but subscription ended'
-                                .format(owner, mac))
-                return Result('MAC', Message.SUBSCRIPTION_ENDED, machine, vlan=SUBSCRIPTION_VLAN)
-            logging.warning('[AUTHORIZATION][with_mac] ({}*{}) failed: wrong auth type'
-                            .format(owner, mac))
-            return Result('MAC', Message.WRONG_AUTH_TYPE, machine)
-        except UserNotFoundException:
-            logging.warning('[AUTHORIZATION][with_mac] ({}*{}) failed: unknown owner'
-                            .format(owner, mac))
-            return Result('MAC', Message.UNKNOWN_USER)
-        except MachineNotFoundException:
-            logging.warning('[AUTHORIZATION][with_mac] ({}) failed: unregistered device'
-                            .format(mac))
-            return Result('MAC', Message.UNREGISTERED_MACHINE)
-        except NoMoreIPException:
-            logging.critical('[AUTHORIZATION][with_mac] ({}) failed: all nodes DOWN'.format(mac))
-            return Result('MAC', Message.LDAP_ERROR)
-    else:
+    if user_name != mac:
         logging.warning('[AUTHORIZATION][with_mac] ({}) failed: inconsistent MAC'.format(mac))
         return Result('MAC', Message.INCONSISTENT_MAC)
+
+    try:
+        machine_data = ldap.get_machine(mac)
+        owner = machine_data['uid']
+        machine = Machine(ldap, **machine_data)
+        if machine.is_mac_auth():
+            if machine.user.has_paid():
+                logging.info('[AUTHORIZATION][with_mac] ({}*{}) done'.format(owner, mac))
+                return Result('MAC', Message.OK, machine,
+                              vlan=ldap.get_vlan(machine.user.room_name))
+            logging.warning('[AUTHORIZATION][with_mac] ({}*{}) done, but subscription ended'
+                            .format(owner, mac))
+            return Result('MAC', Message.SUBSCRIPTION_ENDED, machine, vlan=SUBSCRIPTION_VLAN)
+        logging.warning('[AUTHORIZATION][with_mac] ({}*{}) failed: wrong auth type'
+                        .format(owner, mac))
+        return Result('MAC', Message.WRONG_AUTH_TYPE, machine)
+    except UserNotFoundException:
+        logging.warning('[AUTHORIZATION][with_mac] ({}*{}) failed: unknown owner'
+                        .format(owner, mac))
+        return Result('MAC', Message.UNKNOWN_USER)
+    except MachineNotFoundException:
+        logging.warning('[AUTHORIZATION][with_mac] ({}) failed: unregistered device'.format(mac))
+        return Result('MAC', Message.UNREGISTERED_MACHINE)
+    except NoMoreIPException:
+        logging.critical('[AUTHORIZATION][with_mac] ({}) failed: all nodes DOWN'.format(mac))
+        return Result('MAC', Message.LDAP_ERROR)
 
 
 def with_dot1x(ldap, mac, user_name):
@@ -134,6 +133,7 @@ def with_dot1x(ldap, mac, user_name):
         except MachineNotFoundException:
             logging.info('[AUTHORIZATION][with_dot1x] ({}*{}) needs registration'
                          .format(user_name, mac))
+            machine = Machine(ldap, user_name, mac, '802.1X')
         if user.has_paid():
             logging.info('[AUTHORIZATION][with_dot1x] ({}*{}) done'.format(user_name, mac))
             return Result('802.1X', Message.OK, machine, vlan=ldap.get_vlan(user.room_name))
