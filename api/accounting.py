@@ -6,7 +6,7 @@ from .constants import ACC_START_LINE, ACC_UPDATE_LINE, ACC_STOP_LINE, ACC_LOG_F
 from .exceptions import MachineNotFoundException
 
 
-SESSIONS = {}
+SESSIONS = set()
 
 
 def start(mac, uid, ip, timestamp, session):
@@ -21,15 +21,14 @@ def start(mac, uid, ip, timestamp, session):
     if session in SESSIONS:
         logging.info('[ACCOUNTING][start] Received Start after session started')
         return
-    SESSIONS[session] = {'in_packets': 0, 'out_packets': 0, 'in_octets': 0, 'out_octets': 0,
-                         'timestamp': timestamp}
+    SESSIONS.add(session)
     logging.info('[ACCOUNTING][start] {} sessions open'.format(len(SESSIONS)))
     with open(ACC_LOG_FILE, 'a') as logfile:
         logfile.write(ACC_START_LINE.format(int(timestamp * 1000000), parse.quote(uid, safe=''), ip,
                                             mac))
 
 
-def update(mac, uid, ip, timestamp, session, in_packets, out_packets, in_octets, out_octets):
+def update(mac, uid, ip, timestamp, session, stats):
     """
     Update a session
     :param mac: The client MAC
@@ -37,30 +36,17 @@ def update(mac, uid, ip, timestamp, session, in_packets, out_packets, in_octets,
     :param ip: The client IP
     :param timestamp: The announced event timestamp
     :param session: The session ID
-    :param in_packets: The amount of IN packets
-    :param out_packets: The amount of OUT packets
-    :param in_octets: The amount of IN octets
-    :param out_octets: The amount of OUT octets
+    :param stats: The session stats
     """
     if session not in SESSIONS:
         logging.info('[ACCOUNTING][update] Received Interim-Update for an unknown session')
         return
-    session_data = SESSIONS[session]
-    if timestamp <= session_data['timestamp']:
-        logging.info('[ACCOUNTING][update] Received an expired Interim-Update')
-        return
-    deltas = (in_packets - session_data['in_packets'],
-              out_packets - session_data['out_packets'],
-              in_octets - session_data['in_octets'],
-              out_octets - session_data['out_octets'])
-    SESSIONS[session] = {'in_packets': in_packets, 'out_packets': out_packets,
-                         'in_octets': in_octets, 'out_octets': out_octets, 'timestamp': timestamp}
     with open(ACC_LOG_FILE, 'a') as logfile:
         logfile.write(ACC_UPDATE_LINE.format(int(timestamp * 1000000), parse.quote(uid, safe=''),
-                                             ip, mac, *deltas))
+                                             ip, mac, *stats))
 
 
-def stop(mac, uid, ip, timestamp, session, in_packets, out_packets, in_octets, out_octets, reason):
+def stop(mac, uid, ip, timestamp, session, stats, reason):
     """
     Stop a session
     :param uid: The client UID
@@ -68,28 +54,17 @@ def stop(mac, uid, ip, timestamp, session, in_packets, out_packets, in_octets, o
     :param mac: The client MAC
     :param timestamp: The announced event timestamp
     :param session: The session ID
-    :param in_packets: The amount of IN packets
-    :param out_packets: The amount of OUT packets
-    :param in_octets: The amount of IN octets
-    :param out_octets: The amount of OUT octets
+    :param stats: The session stats
     :param reason: The stop reason
     """
     if session not in SESSIONS:
         logging.info('[ACCOUNTING][stop] Received Stop for an unknown session')
         return
-    session_data = SESSIONS[session]
-    if timestamp <= session_data['timestamp']:
-        logging.info('[ACCOUNTING][stop] Received an expired Stop')
-        return
-    deltas = (in_packets - session_data['in_packets'],
-              out_packets - session_data['out_packets'],
-              in_octets - session_data['in_octets'],
-              out_octets - session_data['out_octets'])
-    del SESSIONS[session]
+    SESSIONS.remove(session)
     logging.info('[ACCOUNTING][stop] {} sessions remaining'.format(len(SESSIONS)))
     with open(ACC_LOG_FILE, 'a') as logfile:
         logfile.write(ACC_STOP_LINE.format(int(timestamp * 1000000), parse.quote(uid, safe=''),
-                                           ip, mac, *deltas, reason))
+                                           ip, mac, *stats, reason))
 
 def process(ldap, status, mac, *args, **kwargs):
     """

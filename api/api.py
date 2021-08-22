@@ -98,10 +98,10 @@ def log():
     out_octets = int(request.form.get('out-over') or 0) * 2**32 + \
                  int(request.form.get('out-octets') or 0)
     if status == 'interim-update':
-        accounting.process(ldap, 'interim-update', mac, ip, timestamp, session, in_packets,
-                           out_packets, in_octets, out_octets)
+        accounting.process(ldap, 'interim-update', mac, ip, timestamp, session,
+                           (in_packets, out_packets, in_octets, out_octets))
         return jsonify(None), 204
     reason = request.form.get('reason')
-    accounting.process(ldap, 'stop', mac, ip, timestamp, session, in_packets, out_packets,
-                       in_octets, out_octets, reason)
+    accounting.process(ldap, 'stop', mac, ip, timestamp, session,
+                       (in_packets, out_packets, in_octets, out_octets), reason)
     return jsonify(None), 204
