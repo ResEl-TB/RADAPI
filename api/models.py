@@ -26,6 +26,7 @@ class User:
         """
         return datetime.now() < self.end_internet.replace(tzinfo=None)
 
+
 class Machine:
     """
     This class represents a ResEl user machine.
@@ -59,3 +60,28 @@ class Machine:
         if self.ldap.is_master():
             self.ldap.update('macAddress={},{}'.format(self.mac_address, MACHINE_DN), 'lastDate',
                              datetime.now())
+
+
+class BaseResult:
+    """
+    This class represents a base result.
+    :param auth: The auth type
+    :param message: The result message
+    :param machine: The client machine object
+    :param vlan: The VLAN to redirect the client to
+    """
+    def __init__(self, auth, message, machine=None, vlan=None):
+        self.auth = auth
+        self.message = message
+        self.machine = machine
+        self.vlan = vlan
+
+    def get_machine_owner(self):
+        """
+        Get the owner of the client machine
+        :returns: The owner's UID or 'UNKNOWN'
+        """
+        try:
+            return self.machine.user.name
+        except:
+            return 'UNKNOWN'

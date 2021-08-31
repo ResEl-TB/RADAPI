@@ -4,32 +4,13 @@ import logging
 from datetime import datetime
 from urllib import parse
 from .constants import POSTAUTH_LINE, POSTAUTH_LOG_FILE
-from .models import Machine, User
+from .models import Machine, User, BaseResult
 from .exceptions import MachineNotFoundException, NoMoreIPException, ReadOnlyException
 from .messages import PostAuthMessage as Message
 
 
-class Result:
-    """
-    This class represents a post-auth result.
-    :param auth: The auth type
-    :param message: The result message
-    :param machine: The client machine object
-    """
-    def __init__(self, auth, message, machine=None):
-        self.auth = auth
-        self.message = message
-        self.machine = machine
-
-    def get_machine_owner(self):
-        """
-        Get the owner of the client machine
-        :returns: The owner's UID or 'UNKNOWN'
-        """
-        try:
-            return self.machine.user.name
-        except:
-            return 'UNKNOWN'
+class Result(BaseResult):
+    """This class represents a post-auth result"""
 
     def is_ok(self):
         """
@@ -93,6 +74,26 @@ def with_dot1x(ldap, mac, user_name):
         logging.critical('[POSTAUTH][with_dot1x] ({}*{}) failed: all nodes DOWN'
                          .format(user_name, mac))
         return Result('802.1X', Message.LDAP_ERROR)
+
+
+def wrongpassword(ldap, mac, user_name):
+    """
+    Do a post-auth with a wrong password.
+    :param ldap: The ldap to connect to
+    :param mac: The client's MAC address
+    :param user_name: The user name passed by the NAS
+    """
+    machine = None
+    try:
+        machine_data = ldap.get_machine(mac)
+        machine = Machine(ldap, **machine_data)
+    except MachineNotFoundException:
+        pass
+    except NoMoreIPException:
+        logging.critical('[WRONGPASSWORD][process] ({}*{}) failed: all nodes DOWN'
+                         .format(user_name, mac))
+        return Result('802.1X', Message.LDAP_ERROR)
+    return Result('802.1X', Message.WRONG_PASSWORD, machine)
 
 
 def log(ip, port, mac, uid, result):

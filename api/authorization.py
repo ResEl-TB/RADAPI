@@ -7,32 +7,11 @@ from urllib import parse
 from .constants import SUBSCRIPTION_VLAN, AUTHORIZATION_LINE, AUTHORIZATION_LOG_FILE
 from .exceptions import UserNotFoundException, MachineNotFoundException, NoMoreIPException
 from .messages import AuthorizationMessage as Message
-from .models import Machine, User
+from .models import Machine, User, BaseResult
 
 
-class Result:
-    """
-    This class represents an authentication result.
-    :param auth: The auth type
-    :param message: The result message
-    :param machine: The client machine object
-    :param vlan: The VLAN to redirect the client to
-    """
-    def __init__(self, auth, message, machine=None, vlan=None):
-        self.auth = auth
-        self.message = message
-        self.machine = machine
-        self.vlan = vlan
-
-    def get_machine_owner(self):
-        """
-        Get the owner of the client machine
-        :returns: The owner's UID or 'UNKNOWN'
-        """
-        try:
-            return self.machine.user.name
-        except:
-            return 'UNKNOWN'
+class Result(BaseResult):
+    """This class represents an authentication result"""
 
     def is_authorized(self):
         """

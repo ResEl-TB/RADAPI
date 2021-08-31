@@ -2,7 +2,7 @@
 
 import logging
 from flask import Flask, request, jsonify
-from . import authorization, postauth, wrongpassword, accounting
+from . import authorization, postauth, accounting
 from .ldap import Ldap
 from .constants import (MAC_REGEX, LDAP_USER, LDAP_PASSWORD, MASTER_LDAP, SLAVE_LDAPS)
 
@@ -73,7 +73,9 @@ def wrong():
     user_name = request.form.get('uid').split('@')[0].lower().strip()
 
     logging.debug('Wrong password for {}*{}'.format(user_name, mac))
-    wrongpassword.log(ip, port, mac, user_name)
+    result = postauth.wrongpassword(ldap, mac, user_name)
+
+    postauth.log(ip, port, mac, user_name, result)
 
     return jsonify(None), 503
 
