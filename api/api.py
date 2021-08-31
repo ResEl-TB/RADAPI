@@ -2,7 +2,7 @@
 
 import logging
 from flask import Flask, request, jsonify
-from . import authorization, postauth, accounting
+from . import authorization, postauth, wrongpassword, accounting
 from .ldap import Ldap
 from .constants import (MAC_REGEX, LDAP_USER, LDAP_PASSWORD, MASTER_LDAP, SLAVE_LDAPS)
 
@@ -62,6 +62,21 @@ def post():
         code = 503
 
     return jsonify(None), code
+
+
+@app.route('/wrong-password', methods=['POST'])
+def wrong():
+    """This route is the endpoint to signal a wrong password entered"""
+    ip = request.form.get('ip')
+    port = request.form.get('port')
+    mac = ''.join(request.form.get('mac').split('-')).lower()
+    user_name = request.form.get('uid').split('@')[0].lower().strip()
+
+    logging.debug('Wrong password for {}*{}'.format(user_name, mac))
+    wrongpassword.log(ip, port, mac, user_name)
+
+    return jsonify(None), 503
+
 
 @app.route('/log', methods=['POST'])
 def log():

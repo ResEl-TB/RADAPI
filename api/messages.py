@@ -29,7 +29,8 @@ class PostAuthMessage(Enum):
     OK = 0
     UNREGISTERED_MACHINE = 1
     INCONSISTENT_MAC = 2
-    LDAP_ERROR = 3
+    WRONG_PASSWORD = 3
+    LDAP_ERROR = 4
 
     def message(self):
         """
