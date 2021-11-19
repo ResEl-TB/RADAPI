@@ -20,11 +20,15 @@ class Ldap(RoundRobinLdap):
                                                     'endInternet', 'batiment', 'roomNumber']):
             raise UserNotFoundException()
         result = self.get_result()
+        try:
+            room_name = '{}-{:0>3}'.format(result.batiment.value, result.roomNumber.value)
+        except TypeError:
+            room_name = 'I00-000'
         return {'name': result.uid.value,
                 'password': result.userPassword.value.decode('ascii'),
                 'nt_password': result.ntPassword.value,
                 'end_internet': result.endInternet.value,
-                'room_name': '{}-{:0>3}'.format(result.batiment.value, result.roomNumber.value)
+                'room_name': room_name
                }
 
     def get_machine(self, mac):
