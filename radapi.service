@@ -1,0 +1,12 @@
+[Unit]
+Description=Radapi - The Radius API
+After=network.target
+
+[Service]
+User=radapi
+Group=nsa
+WorkingDirectory=/srv/radapi
+ExecStart=/usr/local/bin/gunicorn --workers 16 --timeout 2 wsgi:app --bind 0.0.0.0:4000
+
+[Install]
+WantedBy=multi-user.target
