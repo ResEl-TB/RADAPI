@@ -4,13 +4,13 @@ import logging
 from flask import Flask, request, jsonify
 from . import authorization, postauth, accounting
 from .ldap import Ldap
-from .constants import (MAC_REGEX, LDAP_USER, LDAP_PASSWORD, MASTER_LDAP, SLAVE_LDAPS)
+from .constants import MAC_REGEX, LDAP_USER, LDAP_PASSWORD, RW_SERVERS, RO_SERVERS
 
 
 app = Flask(__name__)
 logging.basicConfig(filename='/var/log/radapi.log', filemode='a', level=logging.DEBUG,
                     format='%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s')
-ldap = Ldap(LDAP_USER, LDAP_PASSWORD, MASTER_LDAP, SLAVE_LDAPS)
+ldap = Ldap(LDAP_USER, LDAP_PASSWORD, RW_SERVERS, RO_SERVERS)
 
 
 @app.route('/authorize', methods=['POST'])

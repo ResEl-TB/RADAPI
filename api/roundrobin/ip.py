@@ -1,71 +1,124 @@
 """This modules provides tools to manipulate IP addresses and pools"""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import reduce
+from random import shuffle
 from .exceptions import NoMoreIPException
+
+
+class PoolIP:
+    """
+    This class implements an IP member of a pool
+    """
+    def __init__(self, address, should_write):
+        self.address = address
+        self.should_write = should_write
+        self.last_crash = datetime.now()
+        self.last_timeout = datetime.now() - timedelta(minutes=10)
+        self.up = True
+
+    def reset(self):
+        """Reset the state of the IP"""
+        self.last_crash = datetime.now()
+        self.last_timeout = datetime.now() - timedelta(minutes=10)
+        self.up = True
+
+    @property
+    def is_available(self):
+        """
+        Check if the IP is available.
+        :returns: Whether the IP is available or not
+        """
+        if self.up or (datetime.now() - self.last_crash).seconds > 300:
+            return True
+        return False
+
+    @property
+    def can_write(self):
+        """
+        Check if the IP corresponds to a writable node.
+        :returns: Whether the node is writable or not
+        """
+        return self.should_write and (datetime.now() - self.last_timeout).seconds > 300
+
+    def timed_out(self):
+        """Mark the node as timed out"""
+        self.last_timeout = datetime.now()
+
 
 class RoundRobinIP:
     """
     This class implements a round-robin IP pool
     """
-    def __init__(self, master, slaves):
-        self.is_master = self.attempts = self.address = self.index = None
-        self.default_address = master
-        self.slaves = slaves
-        self.last_crash = datetime.now()
-        self.reset(init=True)
-        self.next_index = 0
+    def __init__(self, rw_servers, ro_servers):
+        self.servers = ([PoolIP(address, True) for address in rw_servers] +
+                        [PoolIP(address, False) for address in ro_servers])
+        self.ip = None
+
+    def get_rw_pool(self):
+        """
+        Get the R/W pool.
+        :returns: The R/W pool
+        """
+        return [srv for srv in self.servers if srv.can_write and srv.is_available]
 
     def next(self):
         """
         Get the next available IP.
         :returns: The next IP
         """
-        n_slaves = len(self.slaves)
-        if self.is_master:
-            self.last_crash = datetime.now()
-        if self.attempts >= n_slaves:
+        self.just_crashed()
+        rw_pool = self.get_rw_pool()
+        shuffle(rw_pool)
+        ro_pool = [srv for srv in self.servers if not srv.can_write and srv.is_available]
+        shuffle(ro_pool)
+        pool = rw_pool + ro_pool
+        try:
+            self.ip = pool[0]
+            return self.ip.address
+        except IndexError as e:
             self.reset()
-            raise NoMoreIPException()
-        if self.attempts == 0 and not self.is_master:
-            self.is_master = True
-            self.attempts -= 1
-        else:
-            self.index = self.next_index
-            self.next_index = (self.index + 1) % n_slaves
-            self.is_master = False
-        self.address = self.slaves[self.index] if not self.is_master else self.default_address
-        self.attempts += 1
-        return self.address
+            raise NoMoreIPException() from e
 
-    def found(self):
-        """Reset the internal counter if an IP is reachable"""
-        self.attempts = 0
+    def just_crashed(self):
+        """Mark the node as just crashed"""
+        if self.ip is not None:
+            self.ip.last_crash = datetime.now()
+            self.ip.up = False
 
-    def reset(self, init=False):
-        """
-        Reset the internal state.
-        :param init: Whether the reinitialization should be forced
-        """
-        self.index = 0
-        if init or (datetime.now() - self.last_crash).seconds > 300:
-            self.is_master = True
-            self.address = self.default_address
-        self.attempts = 0
+    def reset(self):
+        """Reset the internal state"""
+        self.ip = None
+        for ip in self.servers:
+            ip.reset()
 
-    def get(self):
+    @property
+    def address(self):
         """
-        Get the current address
-        :returns: The current address
+        Get the node's IP address.
+        :returns: The IP address
         """
-        return self.address
+        return self.ip.address
 
-    def get_default(self):
+    @property
+    def can_write(self):
         """
-        Get the default/master address
-        :returns: The default address
+        Check if the node has Write capabilities.
+        :returns: Whether the node can write
         """
-        return self.default_address
+        return self.ip.can_write
+
+    def timed_out(self):
+        """Mark the node as timed out"""
+        self.ip.timed_out()
+
+    @property
+    def has_writable(self):
+        """
+        Check if the pool has any writable IP.
+        :returns: Whether the pool has writable IPs
+        """
+        return len(self.get_rw_pool()) > 0
 
 
 def ip2int(ip):

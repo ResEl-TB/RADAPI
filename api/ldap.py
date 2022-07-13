@@ -53,6 +53,7 @@ class Ldap(RoundRobinLdap):
         :param user: The owner
         """
         logging.info('[POSTAUTH][add_machine] Adding machine {} for user {}'.format(mac, user.name))
+        self.raise_ro_fast()
         return self.do('add', 'macAddress={},{}'.format(mac, MACHINE_DN), 'reselDevice',
                        {'authType': '802.1X', 'uidProprio': 'uid={},{}'.format(user.name,
                                                                                PEOPLE_DN)})

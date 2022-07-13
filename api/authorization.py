@@ -39,7 +39,6 @@ class Result(BaseResult):
         """
         result = {'Reply-Message': self.message.message()}
         result['Session-Timeout'] = self.get_timeout()
-        print(self.get_timeout())
         if self.is_authorized():
             user = self.machine.user
             result['Tunnel-Private-Group-Id'] = str(self.vlan)

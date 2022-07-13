@@ -8,8 +8,8 @@ BUILDING_MASK = '0.0.124.0'
 CIDR_17_MASK = '255.31.128.0'
 VLANS = {'sw':  ('10.0.0.0', CIDR_17_MASK),
          'ap':  ('10.0.128.0', CIDR_17_MASK)}
-MASTER_LDAP = '' # Master IP
-SLAVE_LDAPS = [] # Slaves IP list
+RW_SERVERS = [] # Read/Write LDAP servers
+RO_SERVERS = [] # Read-Only LDAP servers
 LDAP_USER = 'cn=admin,dc=maisel,dc=enst-bretagne,dc=fr'
 LDAP_PASSWORD = '' # LDAP password
 PEOPLE_DN = 'ou=people,dc=maisel,dc=enst-bretagne,dc=fr'
