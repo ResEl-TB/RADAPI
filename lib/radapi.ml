@@ -11,8 +11,9 @@ module Log = Dolog.Log
     @param user The client UID
     @param mac The client MAC *)
 let authorize ldap ip port user mac =
-  let module Autz = (val if mac = user then Authorization.(module With (Mac) : Autx.PROCESSOR) else
-                                            Authorization.(module With (Dot1x) : Autx.PROCESSOR)) in
+  let module Autz = (val match [%catch.o Util.format_mac user] with
+    | Some mac' when mac' = mac -> Authorization.(module With (Mac) : Autx.PROCESSOR)
+    | _ -> Authorization.(module With (Dot1x) : Autx.PROCESSOR)) in
   Log.info "Authorizing %s*%s" user mac;
   Autz.process ldap ip port user mac
 
@@ -24,8 +25,9 @@ let authorize ldap ip port user mac =
     @param user The client UID
     @param mac The client MAC *)
 let post_auth ldap ip port user mac =
-  let module Auth = (val if mac = user then Post_auth.(module With (Mac) : Autx.PROCESSOR) else
-                                            Post_auth.(module With (Dot1x) : Autx.PROCESSOR)) in
+  let module Auth = (val match [%catch.o Util.format_mac user] with
+    | Some mac' when mac' = mac -> Post_auth.(module With (Mac) : Autx.PROCESSOR)
+    | _ -> Post_auth.(module With (Dot1x) : Autx.PROCESSOR)) in
   Log.info "Post-authenticating %s*%s" user mac;
   Auth.process ldap ip port user mac
 

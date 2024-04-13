@@ -30,7 +30,7 @@ let get_rdn_value dn =
 (** Preprocess a user name.
     @param user_name The user name *)
 let format_user user_name =
-  let uid = String.split_on_char '@' user_name |> List.hd |> String.lowercase_ascii in
+  let uid = String.split_on_char '@' user_name |> List.hd in
   assert (Pcre.pmatch ~rex:Constants.user_regex uid); uid
 
 

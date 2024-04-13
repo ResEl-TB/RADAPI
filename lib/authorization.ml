@@ -39,15 +39,16 @@ module Mac : S = struct
 
   (** Perform a MAC authorization.
       @param ldap The LDAP connection
+      @param log_mac The MAC address used as uid
       @param mac The client's MAC address *)
-  let process ldap _ mac =
+  let process ldap log_mac mac =
     let prefix = "[AUTHORIZATION][with_mac]" in
     match Device.get ldap mac >>= ~> (Owner.of_device ldap) with
       | Ok (device, owner) ->
           if device.auth <> ty then
             (Log.warn "%s" [%string "%{prefix} (%{owner.uid}*%{mac}) failed: wrong auth type"];
              Message.Wrong_auth_type, owner.uid) else
-          let password = Password.Cleartext mac in
+          let password = Password.Cleartext log_mac in
           if Owner.has_paid owner then
             (Log.info "%s" [%string "%{prefix} (%{owner.uid}*%{mac}) done"];
              Message.Autz_ok {remaining = Ldap_tools.Datetime.now_until owner.end_internet;
@@ -75,6 +76,7 @@ module Dot1x : S = struct
       @param uid: The user name
       @param mac: The client's MAC address *)
   let process ldap uid mac =
+    let uid = String.lowercase_ascii uid in
     let prefix = "[AUTHORIZATION][with_dot1x]" in
     let proceed_with owner =
       let password = Password.Hashed (owner.Owner.password, owner.nt_password) in

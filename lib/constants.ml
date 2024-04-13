@@ -1,7 +1,7 @@
 (** RADAPI constants *)
 
 
-let user_regex = Pcre.regexp "^[a-z0-9_-]+$"
+let user_regex = Pcre.regexp "^[a-zA-Z0-9_-]+$"
 let mac_regex = Pcre.regexp "^([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?\
                               ([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})$"
 

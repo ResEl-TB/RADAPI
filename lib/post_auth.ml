@@ -62,6 +62,7 @@ module Dot1x : S = struct
       @param uid: The user name
       @param mac: The client's MAC address *)
   let process ldap uid mac =
+    let uid = String.lowercase_ascii uid in
     let prefix = "[POSTAUTH][with_dot1x]" in
     let device = match Device.get ldap mac with
       | Ok device -> device
