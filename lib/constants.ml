@@ -1,9 +1,9 @@
 (** RADAPI constants *)
 
 
-let user_regex = Pcre.regexp "^[a-zA-Z0-9_-]+$"
-let mac_regex = Pcre.regexp "^([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?\
-                              ([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})$"
+let user_regex = Pcre2.regexp "^[a-zA-Z0-9_-]+$"
+let mac_regex = Pcre2.regexp "^([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?\
+                               ([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})[:.-]?([a-fA-F0-9]{2})$"
 
 
 let ldap_servers = Conf.get_string_list "ldap_servers"

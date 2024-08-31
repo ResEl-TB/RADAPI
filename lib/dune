@@ -1,4 +1,4 @@
 (library
  (name radapi)
- (libraries dolog ldap ldap-tools uri timed-cache hex toml)
+ (libraries dolog hex ldap ldap-tools pcre2 timed-cache toml uri)
  (preprocess (pps ldap-tools.ppx_ldap_attrs ppx_catch ppx_string ppx_map)))

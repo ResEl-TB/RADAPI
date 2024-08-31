@@ -31,13 +31,13 @@ let get_rdn_value dn =
     @param user_name The user name *)
 let format_user user_name =
   let uid = String.split_on_char '@' user_name |> List.hd in
-  assert (Pcre.pmatch ~rex:Constants.user_regex uid); uid
+  assert (Pcre2.pmatch ~rex:Constants.user_regex uid); uid
 
 
 (** Preprocess a MAC address.
     @param mac The MAC address *)
 let format_mac mac =
-  String.lowercase_ascii mac |> Pcre.exec ~rex:Constants.mac_regex |> Pcre.get_substrings
+  String.lowercase_ascii mac |> Pcre2.exec ~rex:Constants.mac_regex |> Pcre2.get_substrings
                              |> Array.to_list |> List.tl |> String.concat ""
 
 
