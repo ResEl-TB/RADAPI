@@ -16,9 +16,9 @@ module With (M : S) = struct
       @param message: The authorization message *)
   let log ip port uid mac owner message =
     Util.append_file Constants.authorization_log_file
-                     [%string "%{Util.now_us () # Int}// radius.authorization{ip=%{ip},\
-                               port=%{Util.percent port},mac=%{mac},uid=%{uid},owner=%{owner},\
-                               status=%{Message.to_string message},\
+                     [%string "%{Util.now_us () # Int}// %{Constants.authorization_series}\
+                               {ip=%{ip},port=%{Util.percent port},mac=%{mac},uid=%{uid},\
+                               owner=%{owner},status=%{Message.to_string message},\
                                auth=%{to_string M.ty}} 1\n"]
 
   (** Process an authorization request

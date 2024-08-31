@@ -21,6 +21,10 @@ let authorization_log_file = Conf.get_string "authorization_log_file"
 let postauth_log_file = Conf.get_string "postauth_log_file"
 let accounting_log_file = Conf.get_string "accounting_log_file"
 
+let authorization_series = Conf.get_string "authorization_series"
+let postauth_series = Conf.get_string "postauth_series"
+let accounting_series = Conf.get_string "accounting_series"
+
 let log_file = Conf.get_string "log_file"
 let log_level = Conf.get_string "log_level"
 

@@ -23,12 +23,13 @@ let start ip mac uid timestamp session =
                             %{TC.length sessions # Int} sessions now open"];
     let ts = timestamp * 1000000 in
     let common = [%string "owner=%{uid},ip=%{ip},mac=%{mac}"] in
+    let series = Constants.accounting_series in
     Util.append_file Constants.accounting_log_file
-                     [%string "%{ts # Int}// radius.accounting.summary{type=start,%{common}} 1\n\
-                               %{ts # Int}// radius.accounting.packets{direction=in,%{common}} 0\n\
-                               %{ts # Int}// radius.accounting.packets{direction=out,%{common}} 0\n\
-                               %{ts # Int}// radius.accounting.octets{direction=in,%{common}} 0\n\
-                               %{ts # Int}// radius.accounting.octets{direction=out,%{common}} 0\n"]
+                     [%string "%{ts # Int}// %{series}.summary{type=start,%{common}} 1\n\
+                               %{ts # Int}// %{series}.packets{direction=in,%{common}} 0\n\
+                               %{ts # Int}// %{series}.packets{direction=out,%{common}} 0\n\
+                               %{ts # Int}// %{series}.octets{direction=in,%{common}} 0\n\
+                               %{ts # Int}// %{series}.octets{direction=out,%{common}} 0\n"]
   end
 
 
@@ -46,13 +47,13 @@ let update (in_packets, out_packets, in_octets, out_octets) ip mac uid timestamp
   if TC.mem sessions session then begin
     let ts = timestamp * 1000000 in
     let common = [%string "owner=%{uid},ip=%{ip},mac=%{mac}"] in
+    let series = Constants.accounting_series in
     Util.append_file
       Constants.accounting_log_file
-      [%string
-         "%{ts # Int}// radius.accounting.packets{direction=in,%{common}} %{in_packets # Int}\n\
-          %{ts # Int}// radius.accounting.packets{direction=out,%{common}} %{out_packets # Int}\n\
-          %{ts # Int}// radius.accounting.octets{direction=in,%{common}} %{in_octets # Int}\n\
-          %{ts # Int}// radius.accounting.octets{direction=out,%{common}} %{out_octets # Int}\n"]
+      [%string "%{ts # Int}// %{series}.packets{direction=in,%{common}} %{in_packets # Int}\n\
+                %{ts # Int}// %{series}.packets{direction=out,%{common}} %{out_packets # Int}\n\
+                %{ts # Int}// %{series}.octets{direction=in,%{common}} %{in_octets # Int}\n\
+                %{ts # Int}// %{series}.octets{direction=out,%{common}} %{out_octets # Int}\n"]
   end else
     Log.info "%s" [%string "[ACCOUNTING][update] (%{uid}*%{mac}): received Interim-Update for an \
                             unknown session"]
@@ -76,14 +77,14 @@ let stop (in_packets, out_packets, in_octets, out_octets) reason ip mac uid time
                             %{TC.length sessions # Int} sessions are now open"];
     let ts = timestamp * 1000000 in
     let common = [%string "owner=%{uid},ip=%{ip},mac=%{mac}"] in
+    let series = Constants.accounting_series in
     Util.append_file
       Constants.accounting_log_file
-      [%string
-         "%{ts # Int}// radius.accounting.packets{direction=in,%{common}} %{in_packets # Int}\n\
-          %{ts # Int}// radius.accounting.packets{direction=out,%{common}} %{out_packets # Int}\n\
-          %{ts # Int}// radius.accounting.octets{direction=in,%{common}} %{in_octets # Int}\n\
-          %{ts # Int}// radius.accounting.octets{direction=out,%{common}} %{out_octets # Int}\n\
-          %{ts # Int}// radius.accounting.summary{type=stop,%{common},reason=%{reason}} 1\n"]
+      [%string "%{ts # Int}// %{series}.packets{direction=in,%{common}} %{in_packets # Int}\n\
+                %{ts # Int}// %{series}.packets{direction=out,%{common}} %{out_packets # Int}\n\
+                %{ts # Int}// %{series}.octets{direction=in,%{common}} %{in_octets # Int}\n\
+                %{ts # Int}// %{series}.octets{direction=out,%{common}} %{out_octets # Int}\n\
+                %{ts # Int}// %{series}.summary{type=stop,%{common},reason=%{reason}} 1\n"]
   end else
     Log.info "%s" [%string "[ACCOUNTING][stop] (%{uid}*%{mac}): received Stop for an unknown \
                             session"]

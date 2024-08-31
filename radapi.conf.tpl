@@ -13,6 +13,10 @@ authorization_log_file = "/tmp/authorization"
 postauth_log_file = "/tmp/post-auth"
 accounting_log_file = "/tmp/accounting"
 
+authorization_series = "authorization"
+postauth_series = "postauth"
+accounting_series = "accounting"
+
 log_file = "/var/log/radapi.log"
 log_level = "debug"
 jobs = 1
