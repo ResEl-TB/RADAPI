@@ -1,0 +1,23 @@
+Source: radapi
+Section: net
+Priority: optional
+Maintainer: Benjamin Somers <benjamin.somers@resel.fr>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ ca-certificates,
+ git,
+ libev-dev,
+ libgmp-dev,
+ libpcre2-dev,
+ libssl-dev,
+ opam,
+ pkgconf
+Standards-Version: 4.7.2
+Homepage: https://git.resel.fr/resel/api/radapi
+
+Package: radapi
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: RADIUS API
+ This package provides the internal API used by FreeRADIUS within the ResEl

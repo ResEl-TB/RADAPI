@@ -1,0 +1,56 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+# Keep OPAM contained inside the build tree.
+OPAMROOT      := $(CURDIR)/debian/.opamroot
+OPAMSWITCHDIR := $(CURDIR)/debian/.opamswitch
+OPAMHOME      := $(CURDIR)/debian/.home
+
+# Compiler flavor
+OCAML_VARIANT ?= ocaml-variants.5.3.0+options
+OCAML_OPTIONS ?= ocaml-option-flambda
+
+# Dune options
+DUNE_PROFILE  := release
+
+# Custom dependencies
+LDAP_TOOLS_PIN := git+https://github.com/ResEl-TB/ldap-tools.git
+OCAMLDAP_PIN := git+https://github.com/bensmrs/ocamldap.git
+TIMED_CACHE_PIN := git+https://github.com/bensmrs/timed-cache.git
+
+OPAM := HOME=$(OPAMHOME) OPAMROOT=$(OPAMROOT) OPAMCONFIRMLEVEL=unsafe-yes opam
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	# Initialize OPAM
+	mkdir -p $(OPAMHOME) $(OPAMROOT)
+	$(OPAM) init --bare --disable-sandboxing
+
+	# Create a local switch directory and compile OCaml
+	$(OPAM) switch create --yes $(OPAMSWITCHDIR) $(OCAML_VARIANT) $(OCAML_OPTIONS)
+
+	# Add pins
+	$(OPAM) pin add --switch $(OPAMSWITCHDIR) --no-action $(LDAP_TOOLS_PIN)
+	$(OPAM) pin add --switch $(OPAMSWITCHDIR) --no-action $(OCAMLDAP_PIN)
+	$(OPAM) pin add --switch $(OPAMSWITCHDIR) --no-action $(TIMED_CACHE_PIN)
+
+	# Install build deps for this project
+	$(OPAM) install --switch $(OPAMSWITCHDIR) --deps-only .
+
+override_dh_auto_build:
+	# Build the binaries
+	$(OPAM) exec --switch $(OPAMSWITCHDIR) -- dune build --profile $(DUNE_PROFILE)
+
+override_dh_auto_install:
+	# Install binary
+	install -d debian/radapi/usr/libexec
+	install -m 0750 _build/default/src/radapi.exe debian/radapi/usr/libexec/radapi
+
+override_dh_auto_clean:
+	# Clean dune outputs
+	dune clean || true
+	# Remove local opam state
+	rm -rf $(OPAMROOT) $(OPAMSWITCHDIR) $(OPAMHOME)
