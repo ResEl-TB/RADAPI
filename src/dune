@@ -1,4 +1,5 @@
 (executable
  (name radapi)
+ (public_name radapi)
  (libraries radapi opium)
  (preprocess (pps lwt_ppx)))
